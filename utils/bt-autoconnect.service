@@ -1,0 +1,11 @@
+[Unit]
+Description=Bluetooth Auto Connect Service
+After=bluetooth.target
+
+[Service]
+ExecStart=/home/thinh/music/utils/bt-autoconnect.sh
+Restart=always
+User=root
+
+[Install]
+WantedBy=multi-user.target

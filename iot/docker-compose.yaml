@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  muzix-raspberry-pi-speaker:
+    image: vcr-han.vngcloud.vn/106790-scamera-ai/iot_speaker:latest
+    container_name: muzix-pi-speaker
+    restart: unless-stopped
+    
+    # Privileged mode for hardware access (audio, I2C)
+    privileged: true
+    
+    # Device access for audio and I2C
+    devices:
+      - "/dev/snd:/dev/snd"           # Audio devices
+      - "/dev/i2c-1:/dev/i2c-1"       # I2C for PCM5102 DAC
+      - "/dev/i2c-2:/dev/i2c-2"       # Alternative I2C bus (if needed)
+    
+    # Volume mounts for persistence and audio access
+    volumes:
+      - ./ubuntu_speaker_config.json:/app/ubuntu_speaker_config.json
+      - ./audio_cache:/app/audio_cache
+      - ./logs:/app/logs
+      - /etc/localtime:/etc/localtime:ro
+      - /run/user/1000/pulse:/run/user/1000/pulse:rw  # PulseAudio socket
+      - /etc/pulse:/etc/pulse:ro                      # PulseAudio config
+      - /var/lib/dbus:/var/lib/dbus:ro               # D-Bus for audio
+      - /var/run/dbus:/var/run/dbus:rw               # D-Bus socket
+      - /dev/snd:/dev/snd:rw
+      #- /proc/asound:/proc/asound:ro
+    
+    # Environment variables
+    env_file:
+      - .env
+    environment:
+      - MUZIX_SERVER_URL=${MUZIX_SERVER_URL:-https://music.scamera.ai}
+      - DEVICE_NAME=${DEVICE_NAME:-Muzix Pi Speaker}
+      - CONFIG_FILE=${CONFIG_FILE:-ubuntu_speaker_config.json}
+      - PLATFORM=ubuntu
+      - PYTHONUNBUFFERED=1
+      - ALSA_PCM_CARD=0
+      - ALSA_PCM_DEVICE=0
+      - SDL_AUDIODRIVER=pulse
+      - ALSA_CONFIG_PATH=/usr/share/alsa/alsa.conf
+      - ALSA_PCM_NAME=default
+      - SDL_VIDEODRIVER=dummy
+      - DISPLAY=:0
+      - PYGAME_HIDE_SUPPORT_PROMPT=1
+      - PULSE_SERVER=unix:/run/user/1000/pulse/native
+      - PULSE_COOKIE=/home/pulse/.config/pulse/cookie
+      # Sync and monitoring intervals (can be overridden in .env file)
+      - SYNC_POSITION_INTERVAL=${SYNC_POSITION_INTERVAL:-5}
+      - STATUS_MONITORING_INTERVAL=${STATUS_MONITORING_INTERVAL:-5}
+      - SCHEDULE_MONITORING_INTERVAL=${SCHEDULE_MONITORING_INTERVAL:-30}
+      - HEARTBEAT_INTERVAL=${HEARTBEAT_INTERVAL:-30}
+      # API configuration (can be overridden in .env file)
+      - API_TIMEOUT=${API_TIMEOUT:-30}
+      # Logging configuration (can be overridden in .env file)
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-%(asctime)s - %(name)s - %(levelname)s - %(message)s}
+      - LOG_FILE=${LOG_FILE:-/app/logs/muzix_speaker.log}
+      - LOG_TO_CONSOLE=${LOG_TO_CONSOLE:-true}
+      - LOG_TO_FILE=${LOG_TO_FILE:-false}
+      - LOG_MAX_SIZE=${LOG_MAX_SIZE:-10}
+      - LOG_BACKUP_COUNT=${LOG_BACKUP_COUNT:-3}
+    
+    # Network configuration - host mode for better audio device access
+    network_mode: host
+    
+    # Security options for audio access
+    security_opt:
+      - seccomp:unconfined
+    
+    # User and group configuration for audio access
+    user: "1000:1000"  # Use host user ID for PulseAudio access
+    group_add:
+      - audio
+      - i2c
+      - pulse
+      - pulse-access
+    
+    # Working directory
+    working_dir: /app
+    
+    # Health check to ensure audio system is working
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import pyaudio; pyaudio.PyAudio().get_device_count()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+    deploy:
+      resources:
+        limits:
+          memory: 512M # Adjust based on requirements
+          cpus: "4" # Adjust based on requirements
+    # Command to run the speaker
+    command: ["python3", "raspberry_pi_speaker.py", "--platform", "ubuntu", "--config-file", "ubuntu_speaker_config.json", "--server-url", "https://music.scamera.ai"] 

@@ -1,0 +1,49 @@
+# Documentation files
+*.md
+README*
+CACHE_IMPROVEMENTS.md
+INTEGRATION_SUMMARY.md
+
+# Git files
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Audio cache (will be mounted as volume)
+audio_cache/*
+!audio_cache/.gitkeep
+
+# Test files
+test_*.py
+*_test.py
+
+# Setup scripts (not needed in container)
+setup_*.sh
+
+# Backup files
+*.bak
+*.backup
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Personal config files (will be mounted)
+my_*.json 

@@ -1,0 +1,13 @@
+[Unit]
+Description=WiFi Connect Service
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+ExecStart=/home/thinh/music/wificonnect/wifi-connect-wrapper.sh
+WorkingDirectory=/home/thinh/music/wificonnect
+Restart=always
+User=thinh
+
+[Install]
+WantedBy=multi-user.target
