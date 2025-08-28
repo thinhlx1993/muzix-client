@@ -7,6 +7,7 @@ while true; do
 
     if [ "$STATUS" == "no" ]; then
         echo "$(date): Device not connected. Trying to connect..."
+        bluetoothctl disconnect "$DEVICE_MAC"
         bluetoothctl connect "$DEVICE_MAC"
 
         # wait a bit before re-checking
