@@ -62,8 +62,6 @@ while true; do
         if pgrep -x "wifi-connect" > /dev/null; then
             echo "Connected to $CURRENT_SSID. Stopping wifi-connect..."
             pkill -x "wifi-connect"
-        else
-            echo "Connected to $CURRENT_SSID"
         fi
     else
         echo "Not connected or only connected to WiFi Connect → try reconnect"
