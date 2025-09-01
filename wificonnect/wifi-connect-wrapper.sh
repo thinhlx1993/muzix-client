@@ -3,9 +3,55 @@
 WIFI_CONNECT_BIN="/home/thinh/music/wificonnect/wifi-connect"
 WIFI_CONNECT_SSID="WiFi Connect"
 WIFI_CONNECT_TIMEOUT=120
+MAX_ERROR_COUNT=3
+ERROR_COUNT=0
+
+# Function to check for critical errors and restart if needed
+check_for_critical_errors() {
+    # Check for HTTP server binding error
+    if journalctl -u wifi-connect.service --since "5 minutes ago" | grep -q "Cannot start HTTP server on '192.168.42.1:80': Cannot assign requested address"; then
+        echo "Critical error detected: HTTP server binding failure"
+        return 1
+    fi
+    
+    # Check for DNSMasq interface error
+    if journalctl -u wifi-connect.service --since "5 minutes ago" | grep -q "dnsmasq: unknown interface wlan0"; then
+        echo "Critical error detected: DNSMasq interface error"
+        return 1
+    fi
+    
+    return 0
+}
+
+# Function to restart the system
+restart_system() {
+    echo "Critical network errors detected. Restarting system in 30 seconds..."
+    echo "Restart reason: Network interface configuration issues"
+    
+    # Log the restart
+    logger "wifi-connect-wrapper: Critical network errors detected, restarting system"
+    
+    # Wait 30 seconds then restart
+    sleep 30
+    sudo reboot
+}
+
 sleep 30
 
 while true; do
+    # Check for critical errors first
+    if ! check_for_critical_errors; then
+        ERROR_COUNT=$((ERROR_COUNT + 1))
+        echo "Error count: $ERROR_COUNT/$MAX_ERROR_COUNT"
+        
+        if [ $ERROR_COUNT -ge $MAX_ERROR_COUNT ]; then
+            restart_system
+        fi
+    else
+        # Reset error count if no errors detected
+        ERROR_COUNT=0
+    fi
+    
     # Rescan
     nmcli dev wifi rescan >/dev/null 2>&1
 
